@@ -89,10 +89,9 @@ def feed2text(feed):
             cur_text = text[start_pos:start_pos+c_or_length]
             pos += c_or_length
         text += cur_text
-        sys.stdout.write(cur_text+'|')
+        #sys.stdout.write(cur_text+'|')
 
     return text
-    #return "".join(text)
 
 def decompress(data):
     feed = []
@@ -107,30 +106,6 @@ def decompress(data):
         feed.append([distance, c_or_length])
 
     return feed2text(feed)
-
-# Main ##################################
-
-filename = 'book.txt'
-
-# Compression
-
-with open(filename, 'r') as f:
-    text = f.read()
-
-data = compress(text)
-
-with open("%s.lz" % filename, 'w+') as f:
-    f.write(data)
-
-# Decompression
-
-with open("%s.lz" % filename) as f:
-    data = f.read()
-
-text = decompress(data)
-
-with open("%s.uncompressed" % filename, 'w+') as f:
-    f.write(text)
 
 
 
