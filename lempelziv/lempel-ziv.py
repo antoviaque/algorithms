@@ -4,44 +4,53 @@
 from bitstring import BitArray, BitStream
 import json, codecs, sys, math
 
-WINDOW_BITS = 12
+# Globals #######################################
+
+LENGTH_BITS = 8
+WINDOW_BITS = 16
+
+LENGTH_SIZE = int(math.pow(2, LENGTH_BITS))
+WINDOW_SIZE = int(math.pow(2, WINDOW_BITS))
 
 # Functions #####################################
 
+def find_backreference(text, pos):
+    found_len = 0
+    distance = 0
+    text_length = len(text)
+    
+    if pos < WINDOW_SIZE:
+        start_pos = 0
+    else:
+        start_pos = pos - WINDOW_SIZE
+
+    if pos+LENGTH_SIZE > len(text):
+        end_pos = len(text)
+    else:
+        end_pos = pos + LENGTH_SIZE
+    
+    while pos+found_len+1 <= end_pos:
+        search = text[pos:pos+found_len+1]
+        found_pos = text.find(search, start_pos, pos)
+        if found_pos == -1:
+            break
+        found_len = len(search)
+        distance = pos - found_pos
+
+    return [distance, found_len]
+
 def text2feed(text):
     feed = []
-    cache = []
-    max_length = 1
     pos = 0
     text_length = len(text)
     while pos < text_length:
-        ahead = pos + max_length
-        if ahead > text_length:
-            ahead = text_length
-        word = ''
-        while ahead > pos:
-            if text[pos:ahead] in cache:
-                word = text[pos:ahead]
-                break
-            ahead -= 1
-
-        new_pos = pos + len(word) + 1
-        if new_pos > text_length:
-            new_pos = text_length
-        new_word = text[pos:new_pos]
-
-        feed_pos = 0
-        if word in cache:
-            feed_pos = cache.index(word) + 1
-        feed.append([ feed_pos,
-                      text[new_pos-1:new_pos] ])
-        cache.insert(0, new_word)
-        if len(cache) >= math.pow(2, WINDOW_BITS) - 1:
-            cache.pop()
-
-        pos = new_pos
-        if len(new_word) > max_length:
-            max_length = len(new_word)
+        distance, length = find_backreference(text, pos)
+        if not distance:
+            feed.append([0, text[pos:pos+1]])
+            pos += 1
+        else:
+            feed.append([distance, length])
+            pos += length
 
     return feed
 
@@ -59,7 +68,11 @@ def compress(text):
     binary = BitArray()
     for feed_pos, c in feed:
         binary += fixed_length_bin(feed_pos, WINDOW_BITS)
-        binary += fixed_length_bin(ord(c), 8)
+        try:
+            c = ord(c)
+        except TypeError:
+            pass
+        binary += fixed_length_bin(c, 8)
     binary += padding_bits(binary.bin)
 
     return binary.bytes
@@ -94,7 +107,8 @@ def decompress(data):
 
 # Main ##################################
 
-filename = 'book.txt'
+#filename = 'book.txt'
+filename = 'access.log'
 
 # Compression
 
