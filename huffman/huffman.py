@@ -36,6 +36,7 @@ def get_tree(text):
         low = [ low1[0]+low2[0], low1[1]+low2[1], [low2, low1] ]
         tree.append(low)
 
+    print tree
     return tree
 
 def get_code(char, tree, code=""):
@@ -125,7 +126,7 @@ filename = 'book.txt'
 
 # Compression
 
-with codecs.open(filename, 'r', 'utf-8') as f:
+with open(filename, 'r') as f:
     text = f.read()
 
 data, tree = compress(text)
@@ -133,7 +134,7 @@ data, tree = compress(text)
 with open("%s.huffman" % filename, 'w+') as f:
     f.write(data.bytes)
 
-with codecs.open("%s.huffman_tree" % filename, 'w+', 'utf-8') as f:
+with open("%s.huffman_tree" % filename, 'w+') as f:
     f.write(tree2json(tree))
 
 # Decompression
@@ -141,7 +142,7 @@ with codecs.open("%s.huffman_tree" % filename, 'w+', 'utf-8') as f:
 with open("%s.huffman" % filename) as f:
     data = f.read()
 
-with codecs.open("%s.huffman_tree" % filename, 'r', 'utf-8') as f:
+with open("%s.huffman_tree" % filename, 'r') as f:
     tree = json.loads(f.read())
 
 text = decompress(data, tree)
