@@ -72,43 +72,45 @@ def compress(text):
             c = ord(c)
         except TypeError:
             pass
-        binary += fixed_length_bin(c, 8)
+        binary += fixed_length_bin(c, LENGTH_BITS)
     binary += padding_bits(binary.bin)
 
     return binary.bytes
 
 def feed2text(feed):
-    text = []
-    feed_pos = 0
-    for rel_pos, c in feed:
-        cur_text = c
-        sub_pos = feed_pos
-        while rel_pos:
-            sub_pos -= rel_pos
-            rel_pos, c = feed[sub_pos]
-            cur_text = c + cur_text
-        text.append(cur_text)
-        feed_pos += 1
-        #sys.stdout.write(cur_text+'|')
+    text = ""
+    pos = 0
+    for distance, c_or_length in feed:
+        if distance == 0:
+            cur_text = c_or_length
+            pos += 1
+        else:
+            start_pos = pos - distance
+            cur_text = text[start_pos:start_pos+c_or_length]
+            pos += c_or_length
+        text += cur_text
+        sys.stdout.write(cur_text+'|')
 
-    return "".join(text)
+    return text
+    #return "".join(text)
 
 def decompress(data):
     feed = []
     pos = 0
     binary = BitStream(bytes=data)
     binary_length = len(binary.bin)
-    while binary_length - binary.pos >= 8:
-        feed_pos = binary.read('uint:%d' % WINDOW_BITS)
-        c = binary.read('bytes:1')
-        feed.append([feed_pos, c])
+    while binary_length - binary.pos >= (WINDOW_BITS + LENGTH_BITS):
+        distance = binary.read('uint:%d' % WINDOW_BITS)
+        c_or_length = binary.read('uint:%d' % LENGTH_BITS)
+        if distance == 0:
+            c_or_length = chr(c_or_length)
+        feed.append([distance, c_or_length])
 
     return feed2text(feed)
 
 # Main ##################################
 
-#filename = 'book.txt'
-filename = 'access.log'
+filename = 'book.txt'
 
 # Compression
 
